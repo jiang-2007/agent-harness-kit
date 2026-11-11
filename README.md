@@ -2,12 +2,12 @@
 
 # harnesskit
 
-### A model-agnostic LLM agent harness — ReAct loop, tool registry, pluggable providers, parallel sub-agent routing, local retrieval, structured trace and policy guards.
+### A model-agnostic LLM agent harness — ReAct loop, tool registry, pluggable providers, parallel sub-agent routing, local vector and TF-IDF retrieval, structured trace and policy guards.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg)
-[![Tests](https://img.shields.io/badge/tests-34%20passing-success.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-43%20passing-success.svg)](#running-tests)
 ![Stdlib core](https://img.shields.io/badge/core-stdlib%20only-2c3e50.svg)
 ![Multi-agent](https://img.shields.io/badge/multi-agent-orchestration-8e44ad.svg)
 
@@ -32,13 +32,14 @@ dependency to run the demos and tests.
 | 🔌 **Pluggable providers** | One `LLMProvider` interface; an offline `MockProvider` plus an OpenAI-compatible backend for gateways, vLLM or local models. |
 | 🧠 **Bounded memory** | Sliding-window buffer that always preserves the system prompt, with snapshot / restore for resumable sessions. |
 | 🤝 **Supervisor routing** | Register specialist agents; delegate a single task, fan out a task map, or broadcast to every agent — concurrently or serially. |
-| 🔎 **Local retrieval** | A stdlib TF-IDF retrieval tool grounds answers in a local document store; the store serialises to JSON for persistence. |
+| 🔎 **TF-IDF retrieval** | A stdlib TF-IDF retrieval tool grounds answers in a local document store; the store serialises to JSON for persistence. |
+| 🧬 **Vector store** | A cosine-similarity `VectorStore` with a pluggable `Embedder`; an offline deterministic `HashEmbedder` ships built in, and the store persists to JSON. |
 | 🧾 **Structured trace** | Every user, assistant, tool and policy event is recorded, exportable as JSON and restorable for replay. |
 | 🛡️ **Policy guards** | Every tool call passes a budget, allowlist and optional dry-run check before execution; rejections feed back to the model. |
 
 > **Project status:** a study-grade orchestration kernel built to understand how
-> production agent harnesses are put together. Richer model backends and
-> embedding-based retrieval are on the roadmap.
+> production agent harnesses are put together. Streaming provider responses and
+> richer model backends are on the roadmap.
 
 ## Architecture
 
@@ -160,6 +161,23 @@ text = retrieval.to_json()
 restored = RetrievalTool.from_json(text)
 ```
 
+### Vector retrieval over a local store
+
+```python
+from harnesskit import VectorRetrievalTool, VectorStore
+
+# Plug in any Embedder; the offline HashEmbedder needs no network.
+vector = VectorRetrievalTool([
+    "The ReAct loop alternates between reasoning and acting.",
+    "Cosine similarity ranks vectors by angle and overlap.",
+])
+registry.register(vector)
+
+# Persist and reload the vector store
+store_json = vector.store.to_json()
+reloaded = VectorStore.from_json(store_json)
+```
+
 ### Persist and resume a session
 
 ```python
@@ -198,7 +216,7 @@ agent-harness-kit/
 │   ├── trace.py          # structured event log + JSON export/restore
 │   ├── schema.py         # Message / ToolCall data structures + serialization
 │   ├── memory.py         # sliding-window memory + snapshot/restore
-│   ├── tools/            # registry, builtins, local retrieval
+│   ├── tools/            # registry, builtins, TF-IDF + vector retrieval
 │   ├── providers/        # interface, offline mock, OpenAI-compatible
 │   ├── policies/         # budget / allowlist / dry-run guards
 │   └── config.py         # agent configuration value object
@@ -214,8 +232,9 @@ agent-harness-kit/
 - [x] Dry-run policy mode that records actions without executing them
 - [x] Parallel sub-agent execution and result aggregation
 - [x] Session serialization and resume from a saved trace
-- [ ] Embedding-based retrieval and persistent vector store
+- [x] Embedding-style retrieval and persistent vector store
 - [ ] Streaming provider responses and incremental tool results
+- [ ] Production embedding-model backend behind the Embedder interface
 
 ## Running tests
 
