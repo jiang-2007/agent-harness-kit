@@ -1,0 +1,4 @@
+# Core runtime: standard library only.
+# Optional, for an OpenAI-compatible backend:
+# openai>=1.40
+# pyyaml>=6.0

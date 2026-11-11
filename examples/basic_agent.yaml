@@ -1,0 +1,13 @@
+name: basic_assistant
+system_prompt: >
+  You are a concise assistant. Use a tool when the question needs a calculation
+  or the current time; otherwise answer directly.
+provider:
+  type: mock
+  model: offline-mock
+max_steps: 8
+max_tool_calls: 10
+tools:
+  - calculator
+  - clock
+  - echo
