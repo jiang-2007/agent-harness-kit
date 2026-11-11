@@ -3,7 +3,7 @@ from .agent import Agent
 from .config import AgentConfig
 from .memory import ConversationMemory
 from .policies import PolicyGuard
-from .providers import LLMProvider, MockProvider, OpenAICompatibleProvider
+from .providers import LLMProvider, MockProvider, OpenAICompatibleProvider, RetryProvider
 from .schema import Message, StreamChunk, ToolCall
 from .supervisor import AggregateResult, Supervisor
 from .tools import (
@@ -19,7 +19,7 @@ from .tools import (
 )
 from .trace import TraceLogger
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
     "Agent",
@@ -29,6 +29,7 @@ __all__ = [
     "LLMProvider",
     "MockProvider",
     "OpenAICompatibleProvider",
+    "RetryProvider",
     "Message",
     "StreamChunk",
     "ToolCall",
