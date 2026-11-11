@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg)
-[![Tests](https://img.shields.io/badge/tests-58%20passing-success.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-59%20passing-success.svg)](#running-tests)
 ![Stdlib core](https://img.shields.io/badge/core-stdlib%20only-2c3e50.svg)
 ![Multi-agent](https://img.shields.io/badge/multi-agent-orchestration-8e44ad.svg)
 
@@ -84,6 +84,17 @@ git clone https://github.com/jiang-2007/agent-harness-kit.git
 cd agent-harness-kit
 pip install -e .
 ```
+
+### Run the offline demo
+
+```bash
+harnesskit-demo
+# or, without installing:
+PYTHONPATH=src python3 -m harnesskit.demo
+```
+
+The demo walks through a ReAct turn, a streamed reply, local retrieval and
+parallel fan-out using deterministic offline providers — no API key required.
 
 ### Run a minimal agent (offline, no API key)
 
@@ -243,6 +254,7 @@ agent-harness-kit/
 │   ├── tools/            # registry, builtins, TF-IDF + vector retrieval
 │   ├── providers/        # interface, mock, OpenAI-compatible, retry
 │   ├── policies/         # budget / allowlist / dry-run guards
+│   ├── demo.py           # offline end-to-end demo
 │   └── config.py         # agent configuration value object
 └── tests/                # unit tests across memory, tools, providers, routing
 ```
