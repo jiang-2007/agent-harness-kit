@@ -10,12 +10,16 @@ from .tools import (
     CalculatorTool,
     ClockTool,
     EchoTool,
+    Embedder,
+    HashEmbedder,
     RetrievalTool,
     ToolRegistry,
+    VectorRetrievalTool,
+    VectorStore,
 )
 from .trace import TraceLogger
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "Agent",
@@ -32,6 +36,10 @@ __all__ = [
     "ClockTool",
     "EchoTool",
     "RetrievalTool",
+    "Embedder",
+    "HashEmbedder",
+    "VectorStore",
+    "VectorRetrievalTool",
     "Supervisor",
     "AggregateResult",
     "TraceLogger",
