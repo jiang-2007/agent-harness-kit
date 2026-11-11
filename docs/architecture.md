@@ -3,28 +3,36 @@
 `harnesskit` is a small agent harness: the runtime that sits between a model
 backend and a set of callable tools, owns the conversation trace, and applies
 safety policies before any tool executes. A supervisor layer routes tasks
-between specialist agents.
+between specialist agents, with concurrent fan-out and result aggregation.
 
 ## Layers
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│ Supervisor ── delegates ──▶ Agent (ReAct loop)            │
-│                             provider → tool_calls? → guard │
-│                             → registry → memory → trace   │
-└───────────────┬───────────────────────────┬──────────────┘
-                │                             │
-        ┌───────▼───────┐             ┌──────▼───────┐
-        │ LLMProvider    │             │ ToolRegistry  │
-        │ mock / openai- │             │ builtins /    │
-        │ compatible     │             │ retrieval     │
-        └───────────────┘             └──────────────┘
-                │
-        ┌───────▼───────┐     ┌────────────────┐
-        │ Conversation   │     │ PolicyGuard     │
-        │ Memory (window)│     │ budget/allowlist│
-        └───────────────┘     │ / dry-run       │
-                               └────────────────┘
+                        ┌──────────────────────────────────────────┐
+                        │ Supervisor                              │
+                        │  delegate · delegate_many · broadcast    │
+                        │  thread-pool fan-out → AggregateResult  │
+                        └───────────────┬────────────────────────┘
+                                        │ delegates
+                ┌───────────────────────┼───────────────────────┐
+                ▼                       ▼                       ▼
+        ┌───────────────┐       ┌───────────────┐           ┌───────────────┐
+        │ Agent  A      │       │ Agent  B      │           │ Agent  C      │
+        │ ReAct loop    │       │ ReAct loop    │           │ ReAct loop    │
+        └───────┬───────┘       └───────┬───────┘           └───────┬───────┘
+                └───────────────────────┼───────────────────────────┘
+                                        ▼
+        ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+        │ LLMProvider    │   │ ToolRegistry  │   │ Conversation  │
+        │ mock / openai-│   │ builtins /    │   │ Memory        │
+        │ compatible     │   │ retrieval     │   │ snapshot/JSON │
+        └───────────────┘   └───────────────┘   └───────────────┘
+                                        │
+                                ┌───────▼───────┐
+                                │ PolicyGuard    │
+                                │ budget / allow  │
+                                │ list / dry-run  │
+                                └───────────────┘
 ```
 
 ### Agent loop
@@ -40,10 +48,30 @@ between specialist agents.
 
 ### Supervisor
 
-The `Supervisor` holds named `Agent` instances. It does not call a model itself;
-`delegate(name, task)` looks up the specialist and forwards the task to its
-`run` method, returning that agent's reply. This keeps routing separate from any
-single agent's loop.
+The `Supervisor` holds named `Agent` instances. It does not call a model
+itself.
+
+- `delegate(name, task)` forwards one task to one specialist and returns its
+  reply.
+- `delegate_many({name: task}, parallel=True)` runs a distinct task per agent.
+  By default agents run on a thread pool; each keeps its own memory, so
+  concurrent delegation stays isolated. A failing agent lands in `errors`
+  instead of aborting the batch.
+- `broadcast(task)` sends the same task to every registered agent.
+
+All three produce or wrap an `AggregateResult` with `replies`, `errors`,
+`names` and a combined `summary`.
+
+### Persistence
+
+State is plain JSON-serialisable data so a session can be saved and resumed
+without a database:
+
+- `ConversationMemory` exposes `snapshot` / `restore` and `to_json` /
+  `from_json`; messages use `Message.to_dict` / `Message.from_dict`.
+- `TraceLogger` can `restore` an exported event list or load one from JSON.
+- `RetrievalTool` serialises its document store to a JSON list and rebuilds the
+  TF-IDF index on load.
 
 ### Trace
 
@@ -71,5 +99,7 @@ runs normally without one.
   external action passes through the guard before reaching the registry.
 - **Provider-agnostic**: the harness speaks its own `Message` schema; upstream
   model specifics stay behind the provider interface.
-- **Observable by default**: optional structured trace lets a session be
-  replayed or audited without a logging backend.
+- **Isolated failures**: in fan-out, one agent's exception is recorded and does
+  not take down the rest of the batch.
+- **Observable and resumable**: optional structured trace and JSON snapshots
+  let a session be replayed, audited or resumed without a logging backend.
