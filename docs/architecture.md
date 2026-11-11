@@ -25,7 +25,7 @@ between specialist agents, with concurrent fan-out and result aggregation.
         ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
         │ LLMProvider    │   │ ToolRegistry  │   │ Conversation  │
         │ mock / openai-│   │ builtins /    │   │ Memory        │
-        │ compatible     │   │ retrieval     │   │ snapshot/JSON │
+        │ compatible     │   │ tfidf/vector  │   │ snapshot/JSON │
         └───────────────┘   └───────────────┘   └───────────────┘
                                         │
                                 ┌───────▼───────┐
@@ -72,6 +72,20 @@ without a database:
 - `TraceLogger` can `restore` an exported event list or load one from JSON.
 - `RetrievalTool` serialises its document store to a JSON list and rebuilds the
   TF-IDF index on load.
+- `VectorStore` persists its entries and embeddings to JSON; on reload the stored
+  vectors are reused without re-embedding.
+
+### Retrieval
+
+Two complementary retrieval primitives ship in the stdlib core:
+
+- `RetrievalTool` ranks passages with a simple TF-IDF dot product — lightweight
+  and transparent, no vectors required.
+- `VectorStore` ranks passages by cosine similarity over an `Embedder` space.
+  The `Embedder` protocol lets a real embedding-model backend replace the offline
+  deterministic `HashEmbedder` without touching the store or tool adapter.
+  `VectorRetrievalTool` exposes the store to the model through the `Tool`
+  interface.
 
 ### Trace
 
