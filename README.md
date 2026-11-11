@@ -209,7 +209,7 @@ Agents can be described in YAML; see
 ```
 agent-harness-kit/
 ├── docs/                 # architecture, agent YAML spec
-├── examples/             # declarative agent + parallel supervisor demo
+├── examples/             # declarative agent, parallel supervisor, vector retrieval demos
 ├── src/harnesskit/
 │   ├── agent.py          # ReAct loop
 │   ├── supervisor.py     # sub-agent delegation, fan-out, aggregation
