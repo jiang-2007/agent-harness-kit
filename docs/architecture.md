@@ -65,6 +65,13 @@ itself.
 All three produce or wrap an `AggregateResult` with `replies`, `errors`,
 `names` and a combined `summary`.
 
+### Provider resilience
+
+A `RetryProvider` wraps any inner provider and retries transient `complete`
+failures up to a configurable number of attempts, waiting an injectable backoff
+between tries (the sleeper can be replaced for offline tests). Streaming is
+delegated to the inner provider unchanged.
+
 ### Streaming
 
 Providers may expose an optional `stream(messages, tools)` generator that
