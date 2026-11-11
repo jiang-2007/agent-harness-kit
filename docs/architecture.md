@@ -62,6 +62,19 @@ itself.
 All three produce or wrap an `AggregateResult` with `replies`, `errors`,
 `names` and a combined `summary`.
 
+### Streaming
+
+Providers may expose an optional `stream(messages, tools)` generator that
+yields `StreamChunk` objects. Each chunk carries a text `content` delta, an
+optional complete `tool_call`, and a `done` flag. The base implementation falls
+back to `complete`, so a provider without native streaming still works with the
+streaming loop.
+
+`Agent.run_stream` drives the same ReAct loop as `run`: it accumulates chunk
+deltas into an assistant message, forwards every chunk to an optional
+`on_chunk` callback, executes tool calls through the guard, and yields the
+completed message of each turn.
+
 ### Persistence
 
 State is plain JSON-serialisable data so a session can be saved and resumed
