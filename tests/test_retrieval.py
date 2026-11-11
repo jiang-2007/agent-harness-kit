@@ -33,6 +33,17 @@ class TestRetrievalTool(unittest.TestCase):
         result = self.tool.run(query="grounded passages retrieval", top_k=1)
         self.assertIn("grounded", result.content)
 
+    def test_serialize_and_documents(self):
+        self.assertEqual(self.tool.documents(), DOCUMENTS)
+        self.assertEqual(self.tool.serialize(), DOCUMENTS)
+
+    def test_json_roundtrip(self):
+        restored = RetrievalTool.from_json(self.tool.to_json())
+        result = restored.run(query="react reasoning acting", top_k=2)
+        self.assertTrue(result.ok)
+        self.assertIn("ReAct", result.content)
+        self.assertEqual(restored.documents(), DOCUMENTS)
+
 
 if __name__ == "__main__":
     unittest.main()
