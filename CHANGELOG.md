@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-11-11
+
+### Added
+- `Tool.validate`: checks supplied arguments against the declared parameter
+  schema (string / integer / number / boolean / array / object types); missing
+  arguments fall back to tool defaults.
+- Argument validation and exception isolation in the agent loop: a malformed
+  tool call or a tool that raises is turned into an error tool result fed back
+  to the model, instead of crashing the ReAct loop.
+- Unit tests covering type validation, missing-argument defaults, boolean-vs-
+  integer distinction, invalid-argument feedback and tool-exception isolation
+  (54 tests total).
+
 ## [0.5.0] - 2026-11-11
 
 ### Added
