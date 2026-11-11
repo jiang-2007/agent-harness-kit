@@ -1,6 +1,7 @@
 """Local retrieval tool — a minimal stdlib TF-IDF RAG primitive."""
 from __future__ import annotations
 
+import json
 import math
 import re
 from typing import Any
@@ -53,6 +54,21 @@ class RetrievalTool(Tool):
         self._docs.append(text)
         self._doc_tokens.append(_tokenize(text))
         self._recompute_idf()
+
+    def documents(self) -> list[str]:
+        """Return a copy of the stored passages."""
+        return list(self._docs)
+
+    def serialize(self) -> list[str]:
+        """Return the document store as a JSON-serialisable list."""
+        return list(self._docs)
+
+    def to_json(self, indent: int = 2) -> str:
+        return json.dumps(self.serialize(), ensure_ascii=False, indent=indent)
+
+    @classmethod
+    def from_json(cls, text: str) -> "RetrievalTool":
+        return cls(documents=json.loads(text))
 
     def _score(self, query_tokens: list[str], doc_tokens: list[str]) -> float:
         if not doc_tokens:
