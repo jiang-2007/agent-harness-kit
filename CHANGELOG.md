@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-11
+
+### Added
+- `VectorStore`: in-memory vector store ranked by cosine similarity, with
+  JSON serialization and reload.
+- `Embedder` protocol plus an offline deterministic `HashEmbedder` (hashed
+  bag-of-words, L2-normalized, stable across processes); real embedding-model
+  embedders can be plugged in behind the same interface.
+- `VectorRetrievalTool`: tool adapter exposing the vector store to the model.
+- Unit tests covering embedder determinism/normalization, vector ranking,
+  score filtering and store persistence (43 tests total).
+
 ## [0.3.0] - 2026-11-11
 
 ### Added
