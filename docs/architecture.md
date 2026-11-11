@@ -85,6 +85,13 @@ deltas into an assistant message, forwards every chunk to an optional
 `on_chunk` callback, executes tool calls through the guard, and yields the
 completed message of each turn.
 
+### Demo entry point
+
+`harnesskit.demo` is a self-contained offline walkthrough that wires a ReAct
+turn, a streamed reply, local retrieval and a parallel supervisor together using
+deterministic providers. It exposes the `harnesskit-demo` console script and an
+`examples/demo_overview.py` thin shell.
+
 ### Persistence
 
 State is plain JSON-serialisable data so a session can be saved and resumed
