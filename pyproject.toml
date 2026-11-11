@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "harnesskit"
-version = "0.1.0"
-description = "A lightweight, model-agnostic LLM agent harness: ReAct loop, tool registry, pluggable providers, session memory and policy guards."
+version = "0.3.0"
+description = "A model-agnostic LLM agent harness: ReAct loop, tool registry, pluggable providers, sub-agent routing, local retrieval, structured trace and policy guards."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "jiang-2007" }]
-keywords = ["agent", "llm", "agent-framework", "tool-calling", "rag", "multi-agent"]
+keywords = ["agent", "llm", "agent-framework", "agent-orchestration", "tool-calling", "rag", "multi-agent", "orchestration"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
