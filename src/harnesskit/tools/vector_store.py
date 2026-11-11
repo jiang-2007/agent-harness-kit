@@ -156,7 +156,7 @@ class VectorStore:
     @classmethod
     def from_json(cls, text: str) -> "VectorStore":
         snapshot = json.loads(text)
-        store = cls(embedder=HashEmbedder(dim=int(snapshot.get("dim", 256)))))
+        store = cls(embedder=HashEmbedder(dim=int(snapshot.get("dim", 256))))
         store._entries = [
             _Entry(
                 text=e["text"],
