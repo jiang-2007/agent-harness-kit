@@ -32,6 +32,19 @@ class ToolCall:
 
 
 @dataclass
+class StreamChunk:
+    """One incremental piece of a streamed provider reply.
+
+    ``content`` carries a text delta; ``tool_call`` delivers a complete tool
+    request (typically on the final chunk); ``done`` marks the end of the reply.
+    """
+
+    content: str = ""
+    tool_call: Optional[ToolCall] = None
+    done: bool = False
+
+
+@dataclass
 class Message:
     """A single entry in the conversation trace.
 
