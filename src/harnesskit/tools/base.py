@@ -13,6 +13,18 @@ class ToolResult:
     error: str | None = None
 
 
+# Schema type name -> accepted Python types. ``boolean`` is checked separately
+# because ``bool`` subclasses ``int`` and must not pass an integer check.
+_TYPE_CHECKS: dict[str, tuple[type, ...]] = {
+    "string": (str,),
+    "integer": (int,),
+    "number": (int, float),
+    "boolean": (bool,),
+    "array": (list,),
+    "object": (dict,),
+}
+
+
 class Tool(ABC):
     """Base class for every callable tool exposed to the model."""
 
@@ -23,6 +35,31 @@ class Tool(ABC):
     @abstractmethod
     def run(self, **kwargs: Any) -> ToolResult:
         ...
+
+    def validate(self, arguments: dict[str, Any]) -> list[str]:
+        """Check provided arguments against the declared parameter schema.
+
+        Returns a list of human-readable errors; an empty list means the
+        arguments are acceptable. Missing arguments are left to the tool's
+        own defaults; only supplied arguments are type-checked here.
+        """
+        errors: list[str] = []
+        for arg_name, spec in self.parameters.items():
+            if arg_name not in arguments:
+                continue
+            expected = spec.get("type")
+            accepted = _TYPE_CHECKS.get(expected)
+            if accepted is None:
+                continue
+            value = arguments[arg_name]
+            if expected == "integer" and isinstance(value, bool):
+                errors.append(f"argument '{arg_name}' must be an integer, got boolean")
+            elif not isinstance(value, accepted):
+                errors.append(
+                    f"argument '{arg_name}' must be {expected}, "
+                    f"got {type(value).__name__}"
+                )
+        return errors
 
 
 class ToolRegistry:
