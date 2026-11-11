@@ -41,8 +41,11 @@ between specialist agents, with concurrent fan-out and result aggregation.
 2. Ask the provider for a reply, passing the current tool specs.
 3. If the reply has no tool calls, return it as the final answer.
 4. For each tool call: run the policy guard; on rejection, record a blocked
-   tool result; otherwise execute the tool (or simulate it in dry-run mode) and
-   append the result to memory.
+   tool result. Otherwise validate the arguments against the tool's parameter
+   schema; invalid arguments are recorded as an error result. In dry-run mode the
+   call is simulated; otherwise the tool runs inside an exception boundary, so a
+   raised error becomes a tool result fed back to the model instead of crashing
+   the loop. The result is appended to memory.
 5. Go back to step 2 until the model stops calling tools or the step budget is
    reached.
 
@@ -127,6 +130,7 @@ runs normally without one.
 - **Provider-agnostic**: the harness speaks its own `Message` schema; upstream
   model specifics stay behind the provider interface.
 - **Isolated failures**: in fan-out, one agent's exception is recorded and does
-  not take down the rest of the batch.
+  not take down the rest of the batch; inside the loop, a tool exception or
+  malformed call becomes a feedback result rather than a crash.
 - **Observable and resumable**: optional structured trace and JSON snapshots
   let a session be replayed, audited or resumed without a logging backend.
