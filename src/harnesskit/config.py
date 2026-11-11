@@ -11,5 +11,6 @@ class AgentConfig:
     provider: str = "mock"
     max_steps: int = 8
     max_tool_calls: int = 10
+    dry_run: bool = False
     tools: list[str] = field(default_factory=list)
     allowlist: list[str] | None = None
