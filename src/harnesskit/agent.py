@@ -86,7 +86,35 @@ class Agent:
                 continue
 
             tool = self.registry.get(call.name)
-            result = tool.run(**call.arguments)
+
+            validation_errors = tool.validate(call.arguments)
+            if validation_errors:
+                detail = "; ".join(validation_errors)
+                self._log("tool", detail, tool=call.name, ok=False, validation=True)
+                self.memory.add(
+                    Message(
+                        role="tool",
+                        content=f"invalid arguments: {detail}",
+                        name=call.name,
+                        tool_call_id=call.id,
+                    )
+                )
+                continue
+
+            try:
+                result = tool.run(**call.arguments)
+            except Exception as exc:  # noqa: BLE001 - isolate tool failure from the loop
+                self._log("tool", str(exc), tool=call.name, ok=False)
+                self.memory.add(
+                    Message(
+                        role="tool",
+                        content=f"error: {exc}",
+                        name=call.name,
+                        tool_call_id=call.id,
+                    )
+                )
+                continue
+
             self._log(
                 "tool",
                 result.content or (result.error or ""),
