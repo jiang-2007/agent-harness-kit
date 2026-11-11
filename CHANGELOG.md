@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-11-11
+
+### Added
+- `harnesskit.demo`: an end-to-end offline demo that walks through a ReAct turn,
+  a streamed reply, local TF-IDF retrieval and parallel supervisor fan-out, all
+  driven by deterministic offline providers.
+- `harnesskit-demo` console script and an `examples/demo_overview.py` thin shell;
+  a smoke test asserts the demo runs without raising (59 tests total).
+
 ## [0.7.0] - 2026-11-11
 
 ### Added
