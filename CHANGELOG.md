@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-11-11
+
+### Added
+- `StreamChunk`: incremental reply payload carrying a text delta, an optional
+  complete tool call and a `done` flag.
+- Optional `LLMProvider.stream` interface; the base implementation falls back
+  to `complete` so every provider works with the streaming loop.
+- `MockProvider.stream`: deterministic word-by-word deltas for offline demos
+  and tests.
+- `Agent.run_stream`: a streaming ReAct loop that yields completed turns and
+  forwards every chunk to an optional `on_chunk` callback; tool calls still go
+  through the policy guard.
+- Unit tests covering stream concatenation, tool-call delivery, the base
+  fallback and the streaming agent loop (48 tests total).
+
 ## [0.4.0] - 2026-11-11
 
 ### Added
