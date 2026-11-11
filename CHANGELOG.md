@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-11
+
+### Added
+- `Supervisor.delegate_many` and `Supervisor.broadcast`: fan out tasks to
+  registered sub-agents on a thread pool (or serially), returning an
+  `AggregateResult` with per-agent replies, isolated errors and a combined
+  summary.
+- Session serialization: `ConversationMemory` snapshot/restore and JSON
+  round-trip; `Message` / `ToolCall` `to_dict` / `from_dict`.
+- Trace persistence: `TraceLogger.restore` and `TraceLogger.from_json` to
+  reload an exported event log for replay.
+- Retrieval persistence: `RetrievalTool.documents`, `serialize`, `to_json` and
+  `from_json` to save and reload the local document store.
+- Parallel supervisor demo under `examples/`.
+- Unit tests covering serialization, parallel aggregation, error isolation and
+  retrieval persistence (34 tests total).
+
 ## [0.2.0] - 2026-11-11
 
 ### Added
