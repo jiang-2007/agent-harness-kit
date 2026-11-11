@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg)
-[![Tests](https://img.shields.io/badge/tests-48%20passing-success.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-54%20passing-success.svg)](#running-tests)
 ![Stdlib core](https://img.shields.io/badge/core-stdlib%20only-2c3e50.svg)
 ![Multi-agent](https://img.shields.io/badge/multi-agent-orchestration-8e44ad.svg)
 
@@ -28,7 +28,7 @@ dependency to run the demos and tests.
 | Layer | What it does |
 | --- | --- |
 | 🔁 **ReAct loop** | The agent alternates between model replies and tool execution, bounded by a step budget. |
-| 🧰 **Tool registry** | Tools declare their own schema; the registry hands specs to the model and resolves calls by name. |
+| 🧰 **Tool registry** | Tools declare their own schema; the registry hands specs to the model, resolves calls by name, and validates arguments against the schema before execution. |
 | 🔌 **Pluggable providers** | One `LLMProvider` interface; an offline `MockProvider` plus an OpenAI-compatible backend for gateways, vLLM or local models. |
 | 🌊 **Streaming replies** | An optional `stream` interface yields `StreamChunk` deltas; `Agent.run_stream` forwards chunks to a callback while the ReAct loop and guards keep running. |
 | 🧠 **Bounded memory** | Sliding-window buffer that always preserves the system prompt, with snapshot / restore for resumable sessions. |
@@ -36,7 +36,7 @@ dependency to run the demos and tests.
 | 🔎 **TF-IDF retrieval** | A stdlib TF-IDF retrieval tool grounds answers in a local document store; the store serialises to JSON for persistence. |
 | 🧬 **Vector store** | A cosine-similarity `VectorStore` with a pluggable `Embedder`; an offline deterministic `HashEmbedder` ships built in, and the store persists to JSON. |
 | 🧾 **Structured trace** | Every user, assistant, tool and policy event is recorded, exportable as JSON and restorable for replay. |
-| 🛡️ **Policy guards** | Every tool call passes a budget, allowlist and optional dry-run check before execution; rejections feed back to the model. |
+| 🛡️ **Policy guards** | Every tool call passes a budget, allowlist and optional dry-run check before execution; rejections and tool exceptions feed back to the model instead of crashing the loop. |
 
 > **Project status:** a study-grade orchestration kernel built to understand how
 > production agent harnesses are put together. Real SSE deltas and richer model
@@ -250,6 +250,7 @@ agent-harness-kit/
 - [x] Session serialization and resume from a saved trace
 - [x] Embedding-style retrieval and persistent vector store
 - [x] Streaming provider responses via an optional chunked provider interface
+- [x] Tool argument schema validation and tool-exception isolation
 - [ ] Real SSE deltas and incremental tool-call arguments in the OpenAI-compatible provider
 - [ ] Production embedding-model backend behind the Embedder interface
 
