@@ -3,11 +3,13 @@ system_prompt: >
   You are a concise assistant. Use a tool when the question needs a calculation
   or the current time; otherwise answer directly.
 provider:
-  type: mock
-  model: offline-mock
+  type: mock            # mock | openai-compatible
+  model: offline-mock   # used when provider type is openai-compatible
 max_steps: 8
 max_tool_calls: 10
+dry_run: false          # true records tool calls without executing them
 tools:
   - calculator
   - clock
   - echo
+  - retrieval
