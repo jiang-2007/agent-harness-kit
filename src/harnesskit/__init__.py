@@ -5,7 +5,7 @@ from .memory import ConversationMemory
 from .policies import PolicyGuard
 from .providers import LLMProvider, MockProvider, OpenAICompatibleProvider
 from .schema import Message, ToolCall
-from .supervisor import Supervisor
+from .supervisor import AggregateResult, Supervisor
 from .tools import (
     CalculatorTool,
     ClockTool,
@@ -15,7 +15,7 @@ from .tools import (
 )
 from .trace import TraceLogger
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "Agent",
@@ -33,5 +33,6 @@ __all__ = [
     "EchoTool",
     "RetrievalTool",
     "Supervisor",
+    "AggregateResult",
     "TraceLogger",
 ]
