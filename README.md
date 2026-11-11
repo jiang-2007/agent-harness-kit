@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg)
-[![Tests](https://img.shields.io/badge/tests-54%20passing-success.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-58%20passing-success.svg)](#running-tests)
 ![Stdlib core](https://img.shields.io/badge/core-stdlib%20only-2c3e50.svg)
 ![Multi-agent](https://img.shields.io/badge/multi-agent-orchestration-8e44ad.svg)
 
@@ -29,7 +29,7 @@ dependency to run the demos and tests.
 | --- | --- |
 | 🔁 **ReAct loop** | The agent alternates between model replies and tool execution, bounded by a step budget. |
 | 🧰 **Tool registry** | Tools declare their own schema; the registry hands specs to the model, resolves calls by name, and validates arguments against the schema before execution. |
-| 🔌 **Pluggable providers** | One `LLMProvider` interface; an offline `MockProvider` plus an OpenAI-compatible backend for gateways, vLLM or local models. |
+| 🔌 **Pluggable providers** | One `LLMProvider` interface; an offline `MockProvider`, an OpenAI-compatible backend for gateways/vLLM/local models, and a `RetryProvider` wrapper for transient failures. |
 | 🌊 **Streaming replies** | An optional `stream` interface yields `StreamChunk` deltas; `Agent.run_stream` forwards chunks to a callback while the ReAct loop and guards keep running. |
 | 🧠 **Bounded memory** | Sliding-window buffer that always preserves the system prompt, with snapshot / restore for resumable sessions. |
 | 🤝 **Supervisor routing** | Register specialist agents; delegate a single task, fan out a task map, or broadcast to every agent — concurrently or serially. |
@@ -123,6 +123,14 @@ print(trace.to_json())
 
 The `MockProvider` interprets a `calc: <expression>` hint as a calculator call;
 swap in `OpenAICompatibleProvider` to talk to a real model endpoint.
+
+### Wrap a provider with retry
+
+```python
+from harnesskit import MockProvider, RetryProvider
+
+provider = RetryProvider(MockProvider(), max_retries=3, backoff=0.5)
+```
 
 ### Stream a reply incrementally
 
@@ -233,7 +241,7 @@ agent-harness-kit/
 │   ├── schema.py         # Message / ToolCall data structures + serialization
 │   ├── memory.py         # sliding-window memory + snapshot/restore
 │   ├── tools/            # registry, builtins, TF-IDF + vector retrieval
-│   ├── providers/        # interface, offline mock, OpenAI-compatible
+│   ├── providers/        # interface, mock, OpenAI-compatible, retry
 │   ├── policies/         # budget / allowlist / dry-run guards
 │   └── config.py         # agent configuration value object
 └── tests/                # unit tests across memory, tools, providers, routing
@@ -251,6 +259,7 @@ agent-harness-kit/
 - [x] Embedding-style retrieval and persistent vector store
 - [x] Streaming provider responses via an optional chunked provider interface
 - [x] Tool argument schema validation and tool-exception isolation
+- [x] Retry wrapper for transient provider failures
 - [ ] Real SSE deltas and incremental tool-call arguments in the OpenAI-compatible provider
 - [ ] Production embedding-model backend behind the Embedder interface
 
