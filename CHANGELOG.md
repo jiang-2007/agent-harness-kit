@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-11-11
+
+### Added
+- `RetryProvider`: a wrapper around any `LLMProvider` that retries transient
+  `complete` failures up to a configurable number of attempts, with injectable
+  backoff/sleeper for offline testing; `stream` is delegated to the inner
+  provider unchanged.
+- Unit tests covering recovery after transient failures, retry exhaustion,
+  zero-retries passthrough and stream delegation (58 tests total).
+
 ## [0.6.0] - 2026-11-11
 
 ### Added
