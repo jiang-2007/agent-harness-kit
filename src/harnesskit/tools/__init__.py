@@ -1,5 +1,6 @@
 from .base import Tool, ToolRegistry, ToolResult
 from .builtins import CalculatorTool, ClockTool, EchoTool
+from .retrieval import RetrievalTool
 
 __all__ = [
     "Tool",
@@ -8,4 +9,5 @@ __all__ = [
     "CalculatorTool",
     "ClockTool",
     "EchoTool",
+    "RetrievalTool",
 ]
