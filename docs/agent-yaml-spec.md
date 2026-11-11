@@ -10,14 +10,16 @@ system_prompt: >
   You are a concise research assistant. Prefer calling tools over guessing,
   and cite the tool result you relied on.
 provider:
-  type: mock            # mock | openai-compatible | local
+  type: mock            # mock | openai-compatible
   model: gpt-4o-mini    # optional, provider-dependent
 max_steps: 8
 max_tool_calls: 10
+dry_run: false          # optional; record calls without executing tools
 tools:
   - calculator
   - clock
   - echo
+  - retrieval
 allowlist:              # optional; omit to allow every registered tool
   - calculator
   - clock
@@ -29,9 +31,10 @@ allowlist:              # optional; omit to allow every registered tool
 | --- | --- | --- |
 | `name` | string | Human-readable agent name. |
 | `system_prompt` | string | System instruction injected at the front of memory. |
-| `provider.type` | string | Backend kind. `mock` ships built in; other backends are pluggable. |
+| `provider.type` | string | Backend kind. `mock` and `openai-compatible` ship built in; others are pluggable. |
 | `provider.model` | string | Optional model identifier passed to the backend. |
 | `max_steps` | int | Maximum provider→tool iterations per run. |
 | `max_tool_calls` | int | Hard cap on tool calls within one run. |
+| `dry_run` | bool | When true, record intended tool calls without executing the real tools. |
 | `tools` | list[string] | Registered tool names exposed to the model. |
 | `allowlist` | list[string] | Optional subset of tools permitted to execute. |
