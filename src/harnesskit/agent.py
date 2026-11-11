@@ -1,12 +1,17 @@
 """The agent runtime: a ReAct-style loop over provider, tools and memory."""
 from __future__ import annotations
 
+from collections.abc import Iterator
+from typing import Callable
+
 from .memory import ConversationMemory
 from .policies.guard import PolicyGuard
 from .providers.base import LLMProvider
-from .schema import Message
+from .schema import Message, StreamChunk
 from .tools.base import ToolRegistry
 from .trace import TraceLogger
+
+ChunkCallback = Callable[[StreamChunk], None]
 
 
 class Agent:
@@ -51,6 +56,52 @@ class Agent:
         if self.trace is not None:
             self.trace.record(event_type, message, **metadata)
 
+    def _execute_tool_calls(self, reply: Message) -> None:
+        """Run every tool call in an assistant reply through the guard."""
+        for call in reply.tool_calls:
+            allowed, reason = self.guard.check(call)
+            if not allowed:
+                self._log("policy", reason, tool=call.name)
+                self.memory.add(
+                    Message(
+                        role="tool",
+                        content=f"policy blocked: {reason}",
+                        name=call.name,
+                        tool_call_id=call.id,
+                    )
+                )
+                continue
+
+            if self.dry_run:
+                simulated = f"[dry-run] would call {call.name}({call.arguments})"
+                self._log("tool", simulated, tool=call.name, dry_run=True)
+                self.memory.add(
+                    Message(
+                        role="tool",
+                        content=simulated,
+                        name=call.name,
+                        tool_call_id=call.id,
+                    )
+                )
+                continue
+
+            tool = self.registry.get(call.name)
+            result = tool.run(**call.arguments)
+            self._log(
+                "tool",
+                result.content or (result.error or ""),
+                tool=call.name,
+                ok=result.ok,
+            )
+            self.memory.add(
+                Message(
+                    role="tool",
+                    content=result.content if result.ok else f"error: {result.error}",
+                    name=call.name,
+                    tool_call_id=call.id,
+                )
+            )
+
     def run(self, user_input: str) -> Message:
         self.memory.add(Message(role="user", content=user_input))
         self._log("user", user_input)
@@ -70,48 +121,56 @@ class Agent:
             if not reply.tool_calls:
                 return reply
 
-            for call in reply.tool_calls:
-                allowed, reason = self.guard.check(call)
-                if not allowed:
-                    self._log("policy", reason, tool=call.name)
-                    self.memory.add(
-                        Message(
-                            role="tool",
-                            content=f"policy blocked: {reason}",
-                            name=call.name,
-                            tool_call_id=call.id,
-                        )
-                    )
-                    continue
-
-                if self.dry_run:
-                    simulated = f"[dry-run] would call {call.name}({call.arguments})"
-                    self._log("tool", simulated, tool=call.name, dry_run=True)
-                    self.memory.add(
-                        Message(
-                            role="tool",
-                            content=simulated,
-                            name=call.name,
-                            tool_call_id=call.id,
-                        )
-                    )
-                    continue
-
-                tool = self.registry.get(call.name)
-                result = tool.run(**call.arguments)
-                self._log(
-                    "tool",
-                    result.content or (result.error or ""),
-                    tool=call.name,
-                    ok=result.ok,
-                )
-                self.memory.add(
-                    Message(
-                        role="tool",
-                        content=result.content if result.ok else f"error: {result.error}",
-                        name=call.name,
-                        tool_call_id=call.id,
-                    )
-                )
+            self._execute_tool_calls(reply)
 
         return Message(role="assistant", content="max steps reached.")
+
+    def run_stream(
+        self,
+        user_input: str,
+        on_chunk: ChunkCallback | None = None,
+    ) -> Iterator[Message]:
+        """Stream the agent loop, yielding one assistant message per turn.
+
+        Every provider chunk is handed to ``on_chunk`` as it arrives; completed
+        turns are yielded back to the caller. Tool calls are executed through
+        the guard exactly as in :meth:`run`.
+        """
+        self.memory.add(Message(role="user", content=user_input))
+        self._log("user", user_input)
+
+        for _ in range(self.max_steps):
+            content_parts: list[str] = []
+            tool_calls: list = []
+
+            for chunk in self.provider.stream(
+                self.memory.all(),
+                tools=self.registry.specs(),
+            ):
+                if on_chunk is not None:
+                    on_chunk(chunk)
+                if chunk.content:
+                    content_parts.append(chunk.content)
+                if chunk.tool_call:
+                    tool_calls.append(chunk.tool_call)
+
+            reply = Message(
+                role="assistant",
+                content="".join(content_parts),
+                tool_calls=tool_calls,
+            )
+            self.memory.add(reply)
+            self._log(
+                "assistant",
+                reply.content,
+                tool_calls=[call.name for call in reply.tool_calls],
+            )
+
+            if not reply.tool_calls:
+                yield reply
+                return
+
+            self._execute_tool_calls(reply)
+            yield reply
+
+        yield Message(role="assistant", content="max steps reached.")
