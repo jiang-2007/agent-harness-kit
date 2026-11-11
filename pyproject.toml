@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "harnesskit"
-version = "0.5.0"
-description = "A model-agnostic LLM agent harness: ReAct loop, tool registry, pluggable providers, streaming replies, sub-agent routing, local vector and TF-IDF retrieval, structured trace and policy guards."
+version = "0.6.0"
+description = "A model-agnostic LLM agent harness: ReAct loop, tool registry with schema validation, pluggable providers, streaming replies, sub-agent routing, local vector and TF-IDF retrieval, structured trace and policy guards."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
