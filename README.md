@@ -2,12 +2,12 @@
 
 # harnesskit
 
-### A model-agnostic LLM agent harness — ReAct loop, tool registry, pluggable providers, parallel sub-agent routing, local vector and TF-IDF retrieval, structured trace and policy guards.
+### A model-agnostic LLM agent harness — ReAct loop, tool registry, pluggable providers, streaming replies, parallel sub-agent routing, local vector and TF-IDF retrieval, structured trace and policy guards.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg)
-[![Tests](https://img.shields.io/badge/tests-43%20passing-success.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-48%20passing-success.svg)](#running-tests)
 ![Stdlib core](https://img.shields.io/badge/core-stdlib%20only-2c3e50.svg)
 ![Multi-agent](https://img.shields.io/badge/multi-agent-orchestration-8e44ad.svg)
 
@@ -30,6 +30,7 @@ dependency to run the demos and tests.
 | 🔁 **ReAct loop** | The agent alternates between model replies and tool execution, bounded by a step budget. |
 | 🧰 **Tool registry** | Tools declare their own schema; the registry hands specs to the model and resolves calls by name. |
 | 🔌 **Pluggable providers** | One `LLMProvider` interface; an offline `MockProvider` plus an OpenAI-compatible backend for gateways, vLLM or local models. |
+| 🌊 **Streaming replies** | An optional `stream` interface yields `StreamChunk` deltas; `Agent.run_stream` forwards chunks to a callback while the ReAct loop and guards keep running. |
 | 🧠 **Bounded memory** | Sliding-window buffer that always preserves the system prompt, with snapshot / restore for resumable sessions. |
 | 🤝 **Supervisor routing** | Register specialist agents; delegate a single task, fan out a task map, or broadcast to every agent — concurrently or serially. |
 | 🔎 **TF-IDF retrieval** | A stdlib TF-IDF retrieval tool grounds answers in a local document store; the store serialises to JSON for persistence. |
@@ -38,8 +39,8 @@ dependency to run the demos and tests.
 | 🛡️ **Policy guards** | Every tool call passes a budget, allowlist and optional dry-run check before execution; rejections feed back to the model. |
 
 > **Project status:** a study-grade orchestration kernel built to understand how
-> production agent harnesses are put together. Streaming provider responses and
-> richer model backends are on the roadmap.
+> production agent harnesses are put together. Real SSE deltas and richer model
+> backends are on the roadmap.
 
 ## Architecture
 
@@ -122,6 +123,21 @@ print(trace.to_json())
 
 The `MockProvider` interprets a `calc: <expression>` hint as a calculator call;
 swap in `OpenAICompatibleProvider` to talk to a real model endpoint.
+
+### Stream a reply incrementally
+
+```python
+def on_chunk(chunk):
+    if chunk.content:
+        print(chunk.content, end="", flush=True)
+
+for turn in agent.run_stream("explain the ReAct loop", on_chunk=on_chunk):
+    pass  # `turn` is the completed assistant message of each model turn
+```
+
+`run_stream` yields one `Message` per turn; tool calls still pass the policy
+guard. A provider without native streaming falls back to `complete` and sends a
+single chunk.
 
 ### Parallel sub-agent delegation
 
@@ -233,7 +249,8 @@ agent-harness-kit/
 - [x] Parallel sub-agent execution and result aggregation
 - [x] Session serialization and resume from a saved trace
 - [x] Embedding-style retrieval and persistent vector store
-- [ ] Streaming provider responses and incremental tool results
+- [x] Streaming provider responses via an optional chunked provider interface
+- [ ] Real SSE deltas and incremental tool-call arguments in the OpenAI-compatible provider
 - [ ] Production embedding-model backend behind the Embedder interface
 
 ## Running tests
