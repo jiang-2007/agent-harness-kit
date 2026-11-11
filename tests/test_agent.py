@@ -6,11 +6,11 @@ from harnesskit.providers import MockProvider
 from harnesskit.tools import CalculatorTool, EchoTool, ToolRegistry
 
 
-def build_agent(allowlist=None, max_calls=10):
+def build_agent(allowlist=None, max_calls=10, dry_run=False):
     registry = ToolRegistry()
     registry.register(CalculatorTool())
     registry.register(EchoTool())
-    guard = PolicyGuard(max_tool_calls=max_calls, allowlist=allowlist)
+    guard = PolicyGuard(max_tool_calls=max_calls, allowlist=allowlist, dry_run=dry_run)
     return Agent(
         name="tester",
         provider=MockProvider(),
@@ -43,6 +43,14 @@ class TestAgentLoop(unittest.TestCase):
         tool_messages = [m for m in agent.memory.all() if m.role == "tool"]
         self.assertTrue(tool_messages)
         self.assertIn("policy blocked", tool_messages[0].content)
+
+    def test_dry_run_records_without_executing(self):
+        agent = build_agent(dry_run=True)
+        agent.run("calc: 6 * 7")
+        tool_messages = [m for m in agent.memory.all() if m.role == "tool"]
+        self.assertTrue(tool_messages)
+        self.assertIn("[dry-run]", tool_messages[0].content)
+        self.assertNotEqual(tool_messages[0].content, "42")
 
 
 if __name__ == "__main__":
