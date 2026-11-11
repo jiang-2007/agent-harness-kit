@@ -2,14 +2,16 @@
 
 # harnesskit
 
-### A lightweight, model-agnostic LLM agent harness — ReAct loop, tool registry, pluggable providers, sub-agent routing, local retrieval and policy guards.
+### A model-agnostic LLM agent harness — ReAct loop, tool registry, pluggable providers, parallel sub-agent routing, local retrieval, structured trace and policy guards.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg)
-[![Tests](https://img.shields.io/badge/tests-24%20passing-success.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-34%20passing-success.svg)](#running-tests)
+![Stdlib core](https://img.shields.io/badge/core-stdlib%20only-2c3e50.svg)
+![Multi-agent](https://img.shields.io/badge/multi-agent-orchestration-8e44ad.svg)
 
-[Architecture](docs/architecture.md) · [Agent YAML spec](docs/agent-yaml-spec.md) · [Examples](examples/basic_agent.yaml) · [Contributing](CONTRIBUTING.md)
+[Architecture](docs/architecture.md) · [Agent YAML spec](docs/agent-yaml-spec.md) · [Examples](examples/) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -19,51 +21,53 @@
 
 Most agent demos bind one model, one tool list and one prompt together.
 `harnesskit` separates those concerns into small, swappable layers so you can
-experiment with agent orchestration without rewriting the runtime each time.
+experiment with agent orchestration without rewriting the runtime each time. The
+core runs on the Python standard library — no network, no API key, no third-party
+dependency to run the demos and tests.
 
-- **🔁 ReAct-style loop** — the agent alternates between model replies and
-  tool execution, bounded by a step budget.
-- **🧰 Tool registry** — tools declare their own schema; the registry hands
-  specs to the model and resolves calls by name.
-- **🔌 Pluggable providers** — one `LLMProvider` interface; an offline
-  `MockProvider` ships built in, plus an OpenAI-compatible backend for gateways,
-  vLLM or local models.
-- **🧠 Sliding-window memory** — the system prompt is always preserved while
-  recent turns stay within a bounded buffer.
-- **🛡️ Policy guards** — every tool call passes a budget, allowlist and
-  optional dry-run check before execution; rejections are fed back to the model.
-- **🤝 Sub-agent routing** — a `Supervisor` registers specialist agents and
-  delegates a task to the right one, then returns its reply.
-- **🔎 Local retrieval** — a stdlib TF-IDF retrieval tool grounds answers in a
-  local document store, the retrieval half of a RAG pipeline.
-- **🧾 Structured trace** — every user, assistant, tool and policy event is
-  recorded and exportable as JSON for debugging and audit.
+| Layer | What it does |
+| --- | --- |
+| 🔁 **ReAct loop** | The agent alternates between model replies and tool execution, bounded by a step budget. |
+| 🧰 **Tool registry** | Tools declare their own schema; the registry hands specs to the model and resolves calls by name. |
+| 🔌 **Pluggable providers** | One `LLMProvider` interface; an offline `MockProvider` plus an OpenAI-compatible backend for gateways, vLLM or local models. |
+| 🧠 **Bounded memory** | Sliding-window buffer that always preserves the system prompt, with snapshot / restore for resumable sessions. |
+| 🤝 **Supervisor routing** | Register specialist agents; delegate a single task, fan out a task map, or broadcast to every agent — concurrently or serially. |
+| 🔎 **Local retrieval** | A stdlib TF-IDF retrieval tool grounds answers in a local document store; the store serialises to JSON for persistence. |
+| 🧾 **Structured trace** | Every user, assistant, tool and policy event is recorded, exportable as JSON and restorable for replay. |
+| 🛡️ **Policy guards** | Every tool call passes a budget, allowlist and optional dry-run check before execution; rejections feed back to the model. |
 
 > **Project status:** a study-grade orchestration kernel built to understand how
-> production agent harnesses are put together. The core runs on the Python
-> standard library; richer model backends and longer-term memory are on the
-> roadmap.
+> production agent harnesses are put together. Richer model backends and
+> embedding-based retrieval are on the roadmap.
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ Supervisor ── delegates ──▶ Agent (ReAct loop)                │
-│                             provider → tool_calls? → guard     │
-│                             → registry → memory → trace       │
-└───────────────┬───────────────────────────────┬───────────────┘
-                │                                 │
-        ┌───────▼───────┐                 ┌───────▼───────┐
-        │ LLMProvider    │                 │ ToolRegistry  │
-        │ mock / openai-  │                 │ builtins /     │
-        │ compatible      │                 │ retrieval      │
-        └───────────────┘                 └───────────────┘
-                │
-        ┌───────▼───────┐     ┌─────────────────┐
-        │ Conversation   │     │ PolicyGuard      │
-        │ Memory (window)│     │ budget/allowlist/│
-        └───────────────┘     │ dry-run          │
-                               └─────────────────┘
+                        ┌──────────────────────────────────────────┐
+                        │ Supervisor                                │
+                        │  delegate · delegate_many · broadcast    │
+                        │  thread-pool fan-out → AggregateResult    │
+                        └───────────────┬──────────────────────────┘
+                                        │ delegates
+                ┌───────────────────────┼───────────────────────┐
+                ▼                       ▼                           ▼
+        ┌───────────────┐       ┌───────────────┐           ┌───────────────┐
+        │ Agent  A      │       │ Agent  B      │           │ Agent  C      │
+        │ ReAct loop    │       │ ReAct loop    │           │ ReAct loop    │
+        └───────┬───────┘       └───────┬───────┘           └───────┬───────┘
+                └───────────────────────┼───────────────────────────┘
+                                        ▼
+        ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+        │ LLMProvider    │   │ ToolRegistry  │   │ Conversation  │
+        │ mock / openai- │   │ builtins /    │   │ Memory        │
+        │ compatible     │   │ retrieval     │   │ snapshot/JSON │
+        └───────────────┘   └───────────────┘   └───────────────┘
+                                        │
+                                ┌───────▼───────┐
+                                │ PolicyGuard    │
+                                │ budget / allow │
+                                │ list / dry-run │
+                                └───────────────┘
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the layer breakdown and
@@ -118,17 +122,27 @@ print(trace.to_json())
 The `MockProvider` interprets a `calc: <expression>` hint as a calculator call;
 swap in `OpenAICompatibleProvider` to talk to a real model endpoint.
 
-### Route tasks to sub-agents
+### Parallel sub-agent delegation
 
 ```python
 from harnesskit import Supervisor
 
-supervisor = Supervisor()
+supervisor = Supervisor(max_workers=4)
 supervisor.register("researcher", researcher_agent)
 supervisor.register("coder", coder_agent)
 
-reply = supervisor.delegate("researcher", "summarize the retrieval design")
+# One task per agent, run concurrently; failures are isolated into `errors`.
+result = supervisor.delegate_many(
+    {"researcher": "summarize the retrieval design",
+     "coder": "sketch the registry interface"},
+    parallel=True,
+)
+
+print(result.summary)   # combined digest of every successful reply
+print(result.errors)    # agent name -> exception message, if any
 ```
+
+`broadcast(task)` sends the same task to every registered agent.
 
 ### Add local RAG retrieval
 
@@ -140,6 +154,21 @@ retrieval = RetrievalTool([
     "TF-IDF ranks documents by term weight and relevance.",
 ])
 registry.register(retrieval)
+
+# Persist and restore the document store
+text = retrieval.to_json()
+restored = RetrievalTool.from_json(text)
+```
+
+### Persist and resume a session
+
+```python
+# Snapshot memory and trace to JSON, then reload in a later run.
+memory_json = agent.memory.to_json()
+trace_json = trace.to_json()
+
+memory = ConversationMemory.from_json(memory_json)
+restored_trace = TraceLogger.from_json(trace_json)
 ```
 
 ### Declarative config
@@ -162,18 +191,18 @@ Agents can be described in YAML; see
 ```
 agent-harness-kit/
 ├── docs/                 # architecture, agent YAML spec
-├── examples/             # declarative agent example
+├── examples/             # declarative agent + parallel supervisor demo
 ├── src/harnesskit/
 │   ├── agent.py          # ReAct loop
-│   ├── supervisor.py     # sub-agent delegation
-│   ├── trace.py          # structured event log + JSON export
-│   ├── schema.py         # Message / ToolCall data structures
-│   ├── memory.py         # sliding-window conversation memory
+│   ├── supervisor.py     # sub-agent delegation, fan-out, aggregation
+│   ├── trace.py          # structured event log + JSON export/restore
+│   ├── schema.py         # Message / ToolCall data structures + serialization
+│   ├── memory.py         # sliding-window memory + snapshot/restore
 │   ├── tools/            # registry, builtins, local retrieval
 │   ├── providers/        # interface, offline mock, OpenAI-compatible
 │   ├── policies/         # budget / allowlist / dry-run guards
 │   └── config.py         # agent configuration value object
-└── tests/                # unit tests for memory, tools, providers, routing
+└── tests/                # unit tests across memory, tools, providers, routing
 ```
 
 ## Roadmap
@@ -183,9 +212,10 @@ agent-harness-kit/
 - [x] Retrieval-augmented tool over a local document store
 - [x] Structured logging and a session trace exporter
 - [x] Dry-run policy mode that records actions without executing them
+- [x] Parallel sub-agent execution and result aggregation
+- [x] Session serialization and resume from a saved trace
 - [ ] Embedding-based retrieval and persistent vector store
-- [ ] Parallel sub-agent execution and result aggregation
-- [ ] Session serialization and resume from a saved trace
+- [ ] Streaming provider responses and incremental tool results
 
 ## Running tests
 
